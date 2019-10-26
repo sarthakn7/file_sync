@@ -1,4 +1,6 @@
 from os import walk
+from os import makedirs
+from os.path import exists
 from os.path import getsize
 from os.path import getctime
 from os.path import join
@@ -133,7 +135,28 @@ def print_list(title, to_print):
     print('---------------------------------------------------------------\n\n')
 
 
-def main(src, dest):
+def create_directory(dir_path):
+    if not exists(dir_path):
+        makedirs(dir_path)
+        print(f'Directory created: {dir_path}')
+    else:
+        print(f'Error: directory {dir_path} already exists, cannot create new directory')
+
+
+def create_required_directories(dest, missing, moved):
+    print('Creating required directories')
+    for dir_file in missing:
+        dir_path = join(dest, str(dir_file))
+        # dir_path = f'{dest}{str(dir_file)}'
+        create_directory(dir_path)
+    for (new_dir_file, orig_dir_file) in moved:
+        dir_path = join(dest, str(new_dir_file))
+        # dir_path = f'{dest}{str(new_dir_file)}'
+        create_directory(dir_path)
+    print('\n\n')
+
+
+def main(src, dest, delete_move_dir_path, sync):
     # TODO: get directory hashes
 
     missing_dirs, missing_files, moved_dirs, moved_files, deleted_dirs, deleted_files = get_changes(src, dest)
@@ -145,6 +168,14 @@ def main(src, dest):
     print_list('Deleted dirs', deleted_dirs)
     print_list('Deleted files', deleted_files)
 
+    if sync:
+        if delete_move_dir_path is None:
+            delete_move_dir_path = join(dest, 'deleted')  # '/home/sarthak/file_sync_test/test/deleted'
+            if not exists(delete_move_dir_path):
+                create_directory(delete_move_dir_path)
+
+        create_required_directories(dest, missing_dirs, moved_dirs)
+
     # TODO: compare new directory hash
 
 
@@ -153,5 +184,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--src', type=str, required=True, help='Source directory to sync from')
     parser.add_argument('--dest', type=str, required=True, help='Destination directory to sync to')
+    parser.add_argument('--delete-dir', type=str, default=None, help='Destination directory to sync to. Directory with the name "deleted" in dest by default')
+    parser.add_argument('--sync', type=bool, default=False, help='Sync the actual files otherwise just print the changes')
     args = parser.parse_args()
     main(args.src, args.dest, args.delete_dir, args.sync)
