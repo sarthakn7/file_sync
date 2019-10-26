@@ -5,6 +5,8 @@ from os.path import getsize
 from os.path import getctime
 from os.path import join
 from os.path import relpath
+from shutil import copyfile
+from shutil import move
 from argparse import ArgumentParser
 
 
@@ -143,6 +145,26 @@ def create_directory(dir_path):
         print(f'Error: directory {dir_path} already exists, cannot create new directory')
 
 
+def copy_file(src_path, dest_path):
+    if not exists(src_path):
+        print(f'Error: file {src_path} does not exist, cannot copy to {dest_path}')
+    elif exists(dest_path):
+        print(f'Error: file {dest_path} already exists, cannot copy {src_path}')
+    else:
+        copyfile(src_path, dest_path)
+        print(f'File: {src_path} copied to {dest_path}')
+
+
+def move_file(src_path, dest_path):
+    if not exists(src_path):
+        print(f'Error: file {src_path} does not exist, cannot move to {dest_path}')
+    elif exists(dest_path):
+        print(f'Error: file {dest_path} already exists, cannot move {src_path}')
+    else:
+        move(src_path, dest_path)
+        print(f'File: {src_path} moved to {dest_path}')
+
+
 def create_required_directories(dest, missing, moved):
     print('Creating required directories')
     for dir_file in missing:
@@ -153,6 +175,24 @@ def create_required_directories(dest, missing, moved):
         dir_path = join(dest, str(new_dir_file))
         # dir_path = f'{dest}{str(new_dir_file)}'
         create_directory(dir_path)
+    print('\n\n')
+
+
+def copy_missing_files(src, dest, missing):
+    print('Copying missing files')
+    for dir_file in missing:
+        src_path = join(src, str(dir_file)) #f'{src}{str(dir_file)}'
+        dest_path = join(dest, str(dir_file)) #f'{dest}{str(dir_file)}'
+        copy_file(src_path, dest_path)
+    print('\n\n')
+
+
+def move_files(base_path, moved):
+    print('Moving files')
+    for (new_dir_file, orig_dir_file) in moved:
+        src_path = join(base_path, str(orig_dir_file))
+        dest_path = join(base_path, str(new_dir_file))
+        move_file(src_path, dest_path)
     print('\n\n')
 
 
@@ -175,6 +215,8 @@ def main(src, dest, delete_move_dir_path, sync):
                 create_directory(delete_move_dir_path)
 
         create_required_directories(dest, missing_dirs, moved_dirs)
+        copy_missing_files(src, dest, missing_files)
+        move_files(dest, moved_files)
 
     # TODO: compare new directory hash
 
