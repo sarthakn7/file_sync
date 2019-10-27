@@ -1,5 +1,6 @@
 from os import walk
 from os import makedirs
+from os import rmdir
 from os.path import exists
 from os.path import getsize
 from os.path import getctime
@@ -165,6 +166,19 @@ def move_file(src_path, dest_path):
         print(f'File: {src_path} moved to {dest_path}')
 
 
+def delete_directory(dir_path):
+    if not exists(dir_path):
+        print(f'Error: directory {dir_path} does not exist, cannot delete')
+        return True
+    else:
+        try:
+            rmdir(dir_path)
+            print(f'Directory {dir_path} deleted')
+            return True
+        except OSError:
+            return False
+
+
 def create_required_directories(dest, missing, moved):
     print('Creating required directories')
     for dir_file in missing:
@@ -196,6 +210,40 @@ def move_files(base_path, moved):
     print('\n\n')
 
 
+def delete_dirs(base_path, moved, deleted):
+    print('Deleting directories')
+    dirs_not_deleted = []
+    for dir_file in reversed(deleted):
+        dir_path = join(base_path, str(dir_file))
+        if not delete_directory(dir_path):
+            dirs_not_deleted.append(dir_path)
+    for (new_dir_file, orig_dir_file) in reversed(moved):
+        dir_path = join(base_path, str(orig_dir_file))
+        if not delete_directory(dir_path):
+            dirs_not_deleted.append(dir_path)
+
+    while len(dirs_not_deleted) > 0:
+        begin_size = len(dirs_not_deleted)
+        remaining = []
+        for dir_path in dirs_not_deleted:
+            if not delete_directory(dir_path):
+                remaining.append(dir_path)
+
+        if len(remaining) == begin_size:
+            print(f'Error: no change in deleted directories, following directories not deleted: {remaining}')
+            break
+        dirs_not_deleted = remaining
+
+    print('\n\n')
+
+
+def delete_files(base_path, deleted, delete_move_dir_path):
+    print('Deleting files')
+    for dir_file in deleted:
+        move_file(join(base_path, str(dir_file)), join(delete_move_dir_path, dir_file.name))
+        print('\n\n')
+
+
 def main(src, dest, delete_move_dir_path, sync):
     # TODO: get directory hashes
 
@@ -217,6 +265,8 @@ def main(src, dest, delete_move_dir_path, sync):
         create_required_directories(dest, missing_dirs, moved_dirs)
         copy_missing_files(src, dest, missing_files)
         move_files(dest, moved_files)
+        delete_files(dest, deleted_files, delete_move_dir_path)
+        delete_dirs(dest, moved_dirs, deleted_dirs)
 
     # TODO: compare new directory hash
 
